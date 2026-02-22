@@ -74,7 +74,7 @@ function create() {
     etoMneSound = this.sound.add('etoMne', { loop: false });
 
     // Player - Start at starting left corner
-    player = this.physics.add.sprite(50, 950, 'VikaHero');
+    player = this.physics.add.sprite(300, 900, 'VikaHero');
     player.setCollideWorldBounds(true);
     
     // Scaling to 160px height
@@ -84,23 +84,23 @@ function create() {
     player.setBodySize(player.width, player.height); 
     player.refreshBody();
     
-    player.setY(1080 - (player.displayHeight / 2) - 20); // Move to ground
+    player.setY(1000 - (player.displayHeight / 2)); // Move to ground (moved slightly up)
 
     // NPCs
     npcs = this.physics.add.staticGroup();
     
-    // Position NPCs on the ground (y=950 like player)
-    const daulet = npcs.create(400, 950, 'DauletHero').setName('Daulet');
-    const geralt = npcs.create(800, 950, 'GeraltHero').setName('Geralt');
-    const yennefer = npcs.create(1200, 950, 'YenneferHero').setName('Yennefer');
+    // Position NPCs closer to the middle of the scene
+    const daulet = npcs.create(700, 900, 'DauletHero').setName('Daulet');
+    const geralt = npcs.create(1000, 900, 'GeraltHero').setName('Geralt');
+    const yennefer = npcs.create(1300, 900, 'YenneferHero').setName('Yennefer');
 
     daulet.setDisplaySize(daulet.width * (160 / daulet.height), 160);
     geralt.setDisplaySize(geralt.width * (80 / geralt.height), 80);
     yennefer.setDisplaySize(yennefer.width * (80 / yennefer.height), 80);
 
-    daulet.setY(1080 - (daulet.displayHeight / 2) - 20);
-    geralt.setY(1080 - (geralt.displayHeight / 2) - 20);
-    yennefer.setY(1080 - (yennefer.displayHeight / 2) - 20);
+    daulet.setY(1000 - (daulet.displayHeight / 2));
+    geralt.setY(1000 - (geralt.displayHeight / 2));
+    yennefer.setY(1000 - (yennefer.displayHeight / 2));
 
     // Refresh bodies to match new display sizes for static group
     daulet.refreshBody();
@@ -221,11 +221,11 @@ function create() {
     keys = this.input.keyboard.addKeys('E,F');
 
     // Volume Control UI (Top Right)
-    volumeUI = this.add.container(1820, 50).setScrollFactor(0).setDepth(110);
-    const volText = this.add.text(0, 0, 'Volume: 100%', { fontSize: '20px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(1, 0.5);
-    const volUp = this.add.text(10, 0, '+', { fontSize: '24px', fill: '#000', backgroundColor: '#eee', padding: {x: 8, y: 4}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
-    const volDown = this.add.text(45, 0, '-', { fontSize: '24px', fill: '#000', backgroundColor: '#eee', padding: {x: 10, y: 4}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
-    const volMute = this.add.text(80, 0, 'Mute', { fontSize: '20px', fill: '#000', backgroundColor: '#eee', padding: {x: 8, y: 4}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
+    volumeUI = this.add.container(1700, 50).setScrollFactor(0).setDepth(1000); // Moved to x=1700 and set depth=1000
+    const volText = this.add.text(0, 0, 'Volume: 100%', { fontSize: '24px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(1, 0.5);
+    const volUp = this.add.text(10, 0, '+', { fontSize: '28px', fill: '#000', backgroundColor: '#ccc', padding: {x: 10, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
+    const volDown = this.add.text(50, 0, '-', { fontSize: '28px', fill: '#000', backgroundColor: '#ccc', padding: {x: 12, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
+    const volMute = this.add.text(90, 0, 'Mute', { fontSize: '24px', fill: '#000', backgroundColor: '#ccc', padding: {x: 10, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
     
     volumeUI.add([volText, volUp, volDown, volMute]);
 
