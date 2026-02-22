@@ -58,17 +58,24 @@ function create() {
     player = this.physics.add.sprite(400, 500, 'VikaHero');
     player.setCollideWorldBounds(true);
     player.setDisplaySize(player.width * (64 / player.height), 64);
+    player.setBodySize(player.width, player.height); // Set hitbox to original size before display scaling
 
     // NPCs
     npcs = this.physics.add.staticGroup();
     
-    const daulet = npcs.create(200, 300, 'DauletHero').setName('Daulet');
-    const geralt = npcs.create(400, 300, 'GeraltHero').setName('Geralt');
-    const yennefer = npcs.create(600, 300, 'YenneferHero').setName('Yennefer');
+    // Position NPCs on the ground (y=500 like player)
+    const daulet = npcs.create(200, 500, 'DauletHero').setName('Daulet');
+    const geralt = npcs.create(400, 500, 'GeraltHero').setName('Geralt');
+    const yennefer = npcs.create(600, 500, 'YenneferHero').setName('Yennefer');
 
     daulet.setDisplaySize(daulet.width * (64 / daulet.height), 64);
     geralt.setDisplaySize(geralt.width * (32 / geralt.height), 32);
     yennefer.setDisplaySize(yennefer.width * (32 / yennefer.height), 32);
+
+    // Refresh bodies to match new display sizes for static group
+    daulet.refreshBody();
+    geralt.refreshBody();
+    yennefer.refreshBody();
 
     // Breathing clouds (simple particles)
     const particles = this.add.particles(0, 0, 'star', {
@@ -83,9 +90,13 @@ function create() {
 
     // Simple breathing animation for NPCs using tweens
     npcs.getChildren().forEach(npc => {
+        // Use a container or different approach if scale is problematic, 
+        // but here we just ensure we don't conflict with displaySize by using scale directly if possible
+        // Actually, let's just tween the displayHeight slightly to avoid scale issues with static bodies
+        const originalHeight = npc.displayHeight;
         this.tweens.add({
             targets: npc,
-            scaleY: 1.05,
+            displayHeight: originalHeight * 1.05,
             duration: 1000,
             yoyo: true,
             repeat: -1,
@@ -169,23 +180,22 @@ function handleNearNPC(player, npc) {
 }
 
 function update() {
-    // We'll check if player is currently overlapping any NPC from the group
+    // Check if player is near any NPC
     let isNearAnyNPC = false;
+    let nearestNPC = null;
+
     npcs.getChildren().forEach(npc => {
-        if (this.physics.overlap(player, npc)) {
-            activeNPC = npc;
+        // Use distance-based check as it's more reliable for interaction than overlap sometimes
+        const distance = Phaser.Math.Distance.Between(player.x, player.y, npc.x, npc.y);
+        if (distance < 80) {
+            nearestNPC = npc;
             isNearAnyNPC = true;
         }
     });
 
-    if (!isNearAnyNPC) {
-        activeNPC = null;
-    }
+    activeNPC = nearestNPC;
 
     // Player Movement (No Jump, No Gravity)
-    player.setVelocity(0);
-
-    // Don't allow movement if inventory is open
     if (!inventoryVisible) {
         if (cursors.left.isDown) {
             player.setVelocityX(-160);
@@ -193,7 +203,11 @@ function update() {
         } else if (cursors.right.isDown) {
             player.setVelocityX(160);
             player.setFlipX(false);
+        } else {
+            player.setVelocityX(0);
         }
+    } else {
+        player.setVelocityX(0);
     }
 
     // Interaction UI Logic
@@ -201,11 +215,10 @@ function update() {
         interactionText.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 30).setVisible(true);
         
         if (Phaser.Input.Keyboard.JustDown(keys.E)) {
-            showThoughtCloud(activeNPC);
+            showThoughtCloud.call(this, activeNPC);
         }
     } else {
         interactionText.setVisible(false);
-        hideThoughtCloud();
     }
 
     // Inventory logic
@@ -217,6 +230,7 @@ function update() {
 }
 
 function showThoughtCloud(npc) {
+    if (!this.time) return; // Guard for context issues
     thoughtCloud.setPosition(npc.x - 75, npc.y - 110).setVisible(true);
     thoughtText.setPosition(npc.x, npc.y - 90).setVisible(true);
     
