@@ -54,11 +54,16 @@ function create() {
     music = this.sound.add('backgroundMusic', { loop: true });
     music.play();
 
-    // Player
-    player = this.physics.add.sprite(400, 500, 'VikaHero');
+    // Player - Start at starting left corner
+    player = this.physics.add.sprite(50, 500, 'VikaHero');
     player.setCollideWorldBounds(true);
-    player.setDisplaySize(player.width * (64 / player.height), 64);
-    player.setBodySize(player.width, player.height); // Set hitbox to original size before display scaling
+    
+    // Scale to 64px height
+    const vikaScale = 64 / player.height;
+    player.setScale(vikaScale);
+    // Refresh physics body to match scaled size
+    player.setBodySize(player.width, player.height); 
+    player.refreshBody();
 
     // NPCs
     npcs = this.physics.add.staticGroup();
@@ -77,8 +82,8 @@ function create() {
     geralt.refreshBody();
     yennefer.refreshBody();
 
-    // Breathing clouds (simple particles)
-    const particles = this.add.particles(0, 0, 'star', {
+    // Breathing clouds (simple particles) for each NPC
+    const particleConfig = {
         scale: { start: 0.1, end: 0 },
         alpha: { start: 0.5, end: 0 },
         speed: 10,
@@ -86,13 +91,10 @@ function create() {
         frequency: 2000,
         gravityY: -20,
         tint: 0xffffff
-    });
+    };
 
     // Simple breathing animation for NPCs using tweens
     npcs.getChildren().forEach(npc => {
-        // Use a container or different approach if scale is problematic, 
-        // but here we just ensure we don't conflict with displaySize by using scale directly if possible
-        // Actually, let's just tween the displayHeight slightly to avoid scale issues with static bodies
         const originalHeight = npc.displayHeight;
         this.tweens.add({
             targets: npc,
@@ -115,11 +117,8 @@ function create() {
         });
 
         // Add breathing cloud to NPC head
-        particles.addEmitter({
-            follow: npc,
-            followOffset: { x: 0, y: -npc.displayHeight / 2 },
-            emitZone: { type: 'random', source: new Phaser.Geom.Rectangle(-5, -5, 10, 10) }
-        });
+        const emitter = this.add.particles(npc.x, npc.y - npc.displayHeight / 2, 'star', particleConfig);
+        emitter.startFollow(npc, 0, -npc.displayHeight / 2);
     });
 
     // Interaction UI
@@ -165,12 +164,6 @@ function create() {
     // Input
     cursors = this.input.keyboard.createCursorKeys();
     keys = this.input.keyboard.addKeys('E,F');
-
-    // Physics overlap for interaction detection
-    // Note: We'll use a property to track if player is currently overlapping an NPC
-    this.physics.add.overlap(player, npcs, (player, npc) => {
-        activeNPC = npc;
-    }, null, this);
 }
 
 let activeNPC = null;
