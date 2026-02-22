@@ -28,13 +28,12 @@ let gameOver = false;
 const game = new Phaser.Game(config);
 
 function preload() {
-    this.load.setBaseURL('https://labs.phaser.io');
-    this.load.image('sky', 'src/games/firstgame/assets/sky.png');
-    this.load.image('ground', 'src/games/firstgame/assets/platform.png');
-    this.load.image('star', 'src/games/firstgame/assets/star.png');
-    this.load.image('bomb', 'src/games/firstgame/assets/bomb.png');
+    this.load.image('sky', 'assets/images/backgrounds/sky.png');
+    this.load.image('ground', 'assets/images/backgrounds/platform.png');
+    this.load.image('star', 'assets/images/star.png');
+    this.load.image('bomb', 'assets/images/bomb.png');
     this.load.spritesheet('dude', 
-        'src/games/firstgame/assets/dude.png',
+        'assets/images/characters/dude.png',
         { frameWidth: 32, frameHeight: 48 }
     );
 }
