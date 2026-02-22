@@ -5,7 +5,7 @@ const config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            gravity: { y: 0 },
             debug: false
         }
     },
@@ -17,151 +17,155 @@ const config = {
 };
 
 let player;
-let platforms;
 let cursors;
-let stars;
-let score = 0;
-let scoreText;
-let bombs;
-let gameOver = false;
+let keys;
+let npcs;
+let music;
+let interactionText;
+let thoughtCloud;
+let thoughtText;
 
 const game = new Phaser.Game(config);
 
 function preload() {
-    this.load.image('sky', 'assets/images/backgrounds/sky.png');
-    this.load.image('ground', 'assets/images/backgrounds/platform.png');
-    this.load.image('star', 'assets/images/star.png');
-    this.load.image('bomb', 'assets/images/bomb.png');
-    this.load.spritesheet('dude', 
-        'assets/images/characters/dude.png',
-        { frameWidth: 32, frameHeight: 48 }
-    );
+    this.load.image('BackGroundScene1', 'assets/images/backgrounds/BackGroundScene1.png');
+    this.load.image('VikaHero', 'assets/images/characters/VikaHero.png');
+    this.load.image('DauletHero', 'assets/images/characters/DauletHero.png');
+    this.load.image('GeraltHero', 'assets/images/characters/GeraltHero.png');
+    this.load.image('YenneferHero', 'assets/images/characters/YenneferHero.png');
+    this.load.audio('backgroundMusic', 'assets/music/Hoobastank The Reason.mp3');
 }
 
 function create() {
-    //  A simple background for our game
-    this.add.image(400, 300, 'sky');
+    // Background
+    this.add.image(400, 300, 'BackGroundScene1');
 
-    //  The platforms group contains the ground and the 2 ledges we can jump on
-    platforms = this.physics.add.staticGroup();
+    // Music
+    music = this.sound.add('backgroundMusic', { loop: true });
+    music.play();
 
-    //  Here we create the ground.
-    //  Scale it to fit the width of the game (the original image is 400x32 in size)
-    platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-
-    //  Now let's create some ledges
-    platforms.create(600, 400, 'ground');
-    platforms.create(50, 250, 'ground');
-    platforms.create(750, 220, 'ground');
-
-    // The player and its settings
-    player = this.physics.add.sprite(100, 450, 'dude');
-
-    //  Player physics properties. Give the little guy a slight bounce.
-    player.setBounce(0.2);
+    // Player
+    player = this.physics.add.sprite(400, 500, 'VikaHero');
     player.setCollideWorldBounds(true);
 
-    //  Our player animations, turning, walking left and walking right.
-    this.anims.create({
-        key: 'left',
-        frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-        frameRate: 10,
-        repeat: -1
+    // NPCs
+    npcs = this.physics.add.staticGroup();
+    
+    const daulet = npcs.create(200, 300, 'DauletHero').setName('Daulet');
+    const geralt = npcs.create(400, 300, 'GeraltHero').setName('Geralt');
+    const yennefer = npcs.create(600, 300, 'YenneferHero').setName('Yennefer');
+
+    // Simple breathing animation for NPCs using tweens
+    npcs.getChildren().forEach(npc => {
+        this.tweens.add({
+            targets: npc,
+            scaleY: 1.05,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Minor shadow (simple ellipse below NPC)
+        const shadow = this.add.ellipse(npc.x, npc.y + npc.displayHeight / 2, 40, 10, 0x000000, 0.3);
+        this.tweens.add({
+            targets: shadow,
+            scaleX: 1.1,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
     });
 
-    this.anims.create({
-        key: 'turn',
-        frames: [ { key: 'dude', frame: 4 } ],
-        frameRate: 20
-    });
+    // Interaction UI
+    interactionText = this.add.text(0, 0, 'Поговорить', { 
+        fontSize: '18px', 
+        fill: '#fff', 
+        backgroundColor: '#000',
+        padding: { x: 5, y: 2 }
+    }).setOrigin(0.5).setVisible(false);
 
-    this.anims.create({
-        key: 'right',
-        frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-        frameRate: 10,
-        repeat: -1
-    });
+    // Thought Cloud (Simple rectangle for now)
+    thoughtCloud = this.add.graphics().setVisible(false);
+    thoughtCloud.fillStyle(0xffffff, 1);
+    thoughtCloud.fillRoundedRect(0, 0, 150, 40, 10);
+    thoughtCloud.lineStyle(2, 0x000000, 1);
+    thoughtCloud.strokeRoundedRect(0, 0, 150, 40, 10);
+    
+    thoughtText = this.add.text(0, 0, 'Test build 1', { 
+        fontSize: '16px', 
+        fill: '#000' 
+    }).setOrigin(0.5).setVisible(false);
 
-    //  Input Events
+    // Input
     cursors = this.input.keyboard.createCursorKeys();
+    keys = this.input.keyboard.addKeys('E,F');
 
-    //  Some stars to collect
-    stars = this.physics.add.group({
-        key: 'star',
-        repeat: 11,
-        setXY: { x: 12, y: 0, stepX: 70 }
-    });
+    // Physics overlap for interaction detection
+    this.physics.add.overlap(player, npcs, handleNearNPC, null, this);
+}
 
-    stars.children.iterate(function (child) {
-        //  Give each star a slightly different bounce
-        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-    });
+let activeNPC = null;
 
-    bombs = this.physics.add.group();
-
-    //  The score
-    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
-
-    //  Collide the player and the stars with the platforms
-    this.physics.add.collider(player, platforms);
-    this.physics.add.collider(stars, platforms);
-    this.physics.add.collider(bombs, platforms);
-
-    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
-    this.physics.add.overlap(player, stars, collectStar, null, this);
-
-    this.physics.add.collider(player, bombs, hitBomb, null, this);
+function handleNearNPC(player, npc) {
+    activeNPC = npc;
 }
 
 function update() {
-    if (gameOver) {
-        return;
-    }
+    // Reset active NPC and UI visibility at the start of update
+    // We'll re-set it in the overlap callback if player is still near
+    const wasNear = activeNPC;
+    activeNPC = null;
+    
+    // Check overlap again manually or let the physics engine handle it
+    // Phaser overlap runs before update, so activeNPC will be set if touching
+    
+    // Player Movement (No Jump, No Gravity)
+    player.setVelocity(0);
 
     if (cursors.left.isDown) {
         player.setVelocityX(-160);
-        player.anims.play('left', true);
-    }
-    else if (cursors.right.isDown) {
+    } else if (cursors.right.isDown) {
         player.setVelocityX(160);
-        player.anims.play('right', true);
-    }
-    else {
-        player.setVelocityX(0);
-        player.anims.play('turn');
     }
 
-    if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-330);
+    if (cursors.up.isDown) {
+        player.setVelocityY(-160);
+    } else if (cursors.down.isDown) {
+        player.setVelocityY(160);
     }
-}
 
-function collectStar(player, star) {
-    star.disableBody(true, true);
+    // Interaction UI Logic
+    if (activeNPC) {
+        interactionText.setPosition(activeNPC.x, activeNPC.y - 60).setVisible(true);
+        
+        if (Phaser.Input.Keyboard.JustDown(keys.E)) {
+            showThoughtCloud(activeNPC);
+        }
+    } else {
+        interactionText.setVisible(false);
+        hideThoughtCloud();
+    }
 
-    //  Add and update the score
-    score += 10;
-    scoreText.setText('Score: ' + score);
-
-    if (stars.countActive(true) === 0) {
-        //  A new batch of stars to collect
-        stars.children.iterate(function (child) {
-            child.enableBody(true, child.x, 0, true, true);
-        });
-
-        const x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-
-        const bomb = bombs.create(x, 16, 'bomb');
-        bomb.setBounce(1);
-        bomb.setCollideWorldBounds(true);
-        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-        bomb.allowGravity = false;
+    // Inventory logic
+    if (Phaser.Input.Keyboard.JustDown(keys.F)) {
+        console.log("Inventory opened (Test build 1)");
+        // Add more inventory logic here if needed
     }
 }
 
-function hitBomb(player, bomb) {
-    this.physics.pause();
-    player.setTint(0xff0000);
-    player.anims.play('turn');
-    gameOver = true;
+function showThoughtCloud(npc) {
+    thoughtCloud.setPosition(npc.x - 75, npc.y - 110).setVisible(true);
+    thoughtText.setPosition(npc.x, npc.y - 90).setVisible(true);
+    
+    // Auto hide after 3 seconds
+    this.time.delayedCall(3000, () => {
+        hideThoughtCloud();
+    });
+}
+
+function hideThoughtCloud() {
+    thoughtCloud.setVisible(false);
+    thoughtText.setVisible(false);
 }
