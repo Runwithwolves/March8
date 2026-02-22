@@ -24,9 +24,12 @@ let keys;
 let npcs;
 let music;
 let phoneCallSound;
+let meowSound;
 let interactionText;
+let interactionHint;
 let thoughtCloud;
 let thoughtText;
+let thoughtHint;
 let inventoryUI;
 let volumeUI;
 let inventoryVisible = false;
@@ -43,6 +46,7 @@ function preload() {
     this.load.image('YenneferHero', 'assets/images/characters/YenneferHero.png');
     this.load.audio('backgroundMusic', 'assets/music/Hoobastank The Reason.mp3');
     this.load.audio('phoneCall', 'assets/music/PhoneCall.mp3');
+    this.load.audio('meow', 'assets/music/Meow.mp3');
 
     // Inventory items
     this.load.image('proplan', 'assets/images/items/proplan.png');
@@ -58,6 +62,7 @@ function create() {
     music = this.sound.add('backgroundMusic', { loop: true });
     music.play();
     phoneCallSound = this.sound.add('phoneCall', { loop: false });
+    meowSound = this.sound.add('meow', { loop: false });
 
     // Player - Start at starting left corner
     player = this.physics.add.sprite(50, 500, 'VikaHero');
@@ -132,19 +137,33 @@ function create() {
         fill: '#fff', 
         backgroundColor: '#000',
         padding: { x: 5, y: 2 }
-    }).setOrigin(0.5).setVisible(false);
+    }).setOrigin(0.5).setVisible(false).setDepth(10);
+
+    interactionHint = this.add.text(0, 0, 'E', { 
+        fontSize: '14px', 
+        fill: '#000', 
+        backgroundColor: '#fff',
+        padding: { x: 4, y: 1 }
+    }).setOrigin(0.5).setVisible(false).setDepth(11);
 
     // Thought Cloud (Simple rectangle for now)
-    thoughtCloud = this.add.graphics().setVisible(false);
+    thoughtCloud = this.add.graphics().setVisible(false).setDepth(20);
     thoughtCloud.fillStyle(0xffffff, 1);
-    thoughtCloud.fillRoundedRect(0, 0, 150, 40, 10);
+    thoughtCloud.fillRoundedRect(0, 0, 160, 60, 10);
     thoughtCloud.lineStyle(2, 0x000000, 1);
-    thoughtCloud.strokeRoundedRect(0, 0, 150, 40, 10);
+    thoughtCloud.strokeRoundedRect(0, 0, 160, 60, 10);
     
     thoughtText = this.add.text(0, 0, 'Testing build 2', { 
         fontSize: '16px', 
         fill: '#000' 
-    }).setOrigin(0.5).setVisible(false);
+    }).setOrigin(0.5).setVisible(false).setDepth(21);
+
+    thoughtHint = this.add.text(0, 0, 'Нажмите E', { 
+        fontSize: '12px', 
+        fill: '#fff',
+        backgroundColor: '#444',
+        padding: { x: 3, y: 1 }
+    }).setOrigin(0.5).setVisible(false).setDepth(22);
 
     // Inventory UI
     inventoryUI = this.add.container(400, 300).setScrollFactor(0).setVisible(false).setDepth(100);
@@ -232,8 +251,10 @@ function update() {
     if (activeNPC) {
         if (!dialogueVisible) {
             interactionText.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 30).setVisible(true);
+            interactionHint.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 60).setVisible(true);
         } else {
             interactionText.setVisible(false);
+            interactionHint.setVisible(false);
         }
         
         if (Phaser.Input.Keyboard.JustDown(keys.E)) {
@@ -245,6 +266,7 @@ function update() {
         }
     } else {
         interactionText.setVisible(false);
+        interactionHint.setVisible(false);
         if (dialogueVisible) {
             hideThoughtCloud();
         }
@@ -260,17 +282,21 @@ function update() {
 
 function showThoughtCloud(npc) {
     if (!this.time) return; // Guard for context issues
-    thoughtCloud.setPosition(npc.x - 75, npc.y - 110).setVisible(true);
-    thoughtText.setPosition(npc.x, npc.y - 90).setVisible(true);
+    thoughtCloud.setPosition(npc.x - 80, npc.y - 130).setVisible(true);
+    thoughtText.setPosition(npc.x, npc.y - 110).setVisible(true);
+    thoughtHint.setPosition(npc.x, npc.y - 85).setVisible(true);
     dialogueVisible = true;
     
     if (npc.name === 'Daulet') {
         phoneCallSound.play();
+    } else if (npc.name === 'Geralt' || npc.name === 'Yennefer') {
+        meowSound.play();
     }
 }
 
 function hideThoughtCloud() {
     thoughtCloud.setVisible(false);
     thoughtText.setVisible(false);
+    thoughtHint.setVisible(false);
     dialogueVisible = false;
 }
