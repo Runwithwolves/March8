@@ -388,6 +388,10 @@ function handleItemPass(npc, item) {
         etoMneSound.play();
         console.log(`${npc.name} received ${item}`);
     } else {
+        // Play Meow if Geralt or Yennefer receive something else
+        if (npc.name === 'Geralt' || npc.name === 'Yennefer') {
+            meowSound.play();
+        }
         console.log(`${npc.name} doesn't want ${item}`);
     }
 }
