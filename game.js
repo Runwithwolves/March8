@@ -32,9 +32,15 @@ let thoughtText;
 let thoughtHint;
 let inventoryUI;
 let volumeUI;
+let etoMneSound;
+let giveText;
+let giveHint;
+let selectedItemIndex = 0;
+let selectionArrow;
+let isPassingItem = false;
 let inventoryVisible = false;
 let dialogueVisible = false;
-let inventoryItems = [];
+let inventoryItems = ['proplan', 'felix', 'beer'];
 
 const game = new Phaser.Game(config);
 
@@ -47,6 +53,7 @@ function preload() {
     this.load.audio('backgroundMusic', 'assets/music/Hoobastank The Reason.mp3');
     this.load.audio('phoneCall', 'assets/music/PhoneCall.mp3');
     this.load.audio('meow', 'assets/music/Meow.mp3');
+    this.load.audio('etoMne', 'assets/music/EtoMne.mp3');
 
     // Inventory items
     this.load.image('proplan', 'assets/images/items/proplan.png');
@@ -64,17 +71,20 @@ function create() {
     music.play();
     phoneCallSound = this.sound.add('phoneCall', { loop: false });
     meowSound = this.sound.add('meow', { loop: false });
+    etoMneSound = this.sound.add('etoMne', { loop: false });
 
     // Player - Start at starting left corner
     player = this.physics.add.sprite(50, 950, 'VikaHero');
     player.setCollideWorldBounds(true);
     
-    // Scale to 80px height
-    const vikaScale = 80 / player.height;
+    // Scaling to 160px height
+    const vikaScale = 160 / player.height;
     player.setScale(vikaScale);
     // Refresh physics body to match scaled size
     player.setBodySize(player.width, player.height); 
     player.refreshBody();
+    
+    player.setY(1080 - (player.displayHeight / 2) - 20); // Move to ground
 
     // NPCs
     npcs = this.physics.add.staticGroup();
@@ -84,9 +94,13 @@ function create() {
     const geralt = npcs.create(800, 950, 'GeraltHero').setName('Geralt');
     const yennefer = npcs.create(1200, 950, 'YenneferHero').setName('Yennefer');
 
-    daulet.setDisplaySize(daulet.width * (80 / daulet.height), 80);
-    geralt.setDisplaySize(geralt.width * (40 / geralt.height), 40);
-    yennefer.setDisplaySize(yennefer.width * (40 / yennefer.height), 40);
+    daulet.setDisplaySize(daulet.width * (160 / daulet.height), 160);
+    geralt.setDisplaySize(geralt.width * (80 / geralt.height), 80);
+    yennefer.setDisplaySize(yennefer.width * (80 / yennefer.height), 80);
+
+    daulet.setY(1080 - (daulet.displayHeight / 2) - 20);
+    geralt.setY(1080 - (geralt.displayHeight / 2) - 20);
+    yennefer.setY(1080 - (yennefer.displayHeight / 2) - 20);
 
     // Refresh bodies to match new display sizes for static group
     daulet.refreshBody();
@@ -147,6 +161,20 @@ function create() {
         padding: { x: 4, y: 1 }
     }).setOrigin(0.5).setVisible(false).setDepth(11);
 
+    giveText = this.add.text(0, 0, 'Дать', { 
+        fontSize: '18px', 
+        fill: '#fff', 
+        backgroundColor: '#000',
+        padding: { x: 5, y: 2 }
+    }).setOrigin(0.5).setVisible(false).setDepth(10);
+
+    giveHint = this.add.text(0, 0, 'F', { 
+        fontSize: '14px', 
+        fill: '#000', 
+        backgroundColor: '#fff',
+        padding: { x: 4, y: 1 }
+    }).setOrigin(0.5).setVisible(false).setDepth(11);
+
     // Thought Cloud (Simple rectangle for now)
     thoughtCloud = this.add.graphics().setVisible(false).setDepth(20);
     thoughtCloud.fillStyle(0xffffff, 1);
@@ -169,34 +197,37 @@ function create() {
     // Inventory UI
     inventoryUI = this.add.container(960, 540).setScrollFactor(0).setVisible(false).setDepth(100);
     const bg = this.add.graphics();
-    bg.fillStyle(0x000000, 0.8);
-    bg.fillRoundedRect(-150, -100, 300, 200, 10);
-    bg.lineStyle(2, 0xffffff, 1);
-    bg.strokeRoundedRect(-150, -100, 300, 200, 10);
+    bg.fillStyle(0xffffcc, 1); // Bright yellow-ish background
+    bg.fillRoundedRect(-200, -150, 400, 300, 10);
+    bg.lineStyle(4, 0x000000, 1);
+    bg.strokeRoundedRect(-200, -150, 400, 300, 10);
     inventoryUI.add(bg);
 
-    const invTitle = this.add.text(0, -80, 'Inventory', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
+    const invTitle = this.add.text(0, -120, 'Inventory', { fontSize: '32px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(0.5);
     inventoryUI.add(invTitle);
 
-    const itemKeys = ['proplan', 'felix', 'beer'];
-    itemKeys.forEach((key, index) => {
-        const itemImg = this.add.image(-100 + (index * 100), 0, key).setDisplaySize(50, 50);
-        const itemText = this.add.text(-100 + (index * 100), 40, key.charAt(0).toUpperCase() + key.slice(1), { fontSize: '14px', fill: '#fff' }).setOrigin(0.5);
+    inventoryItems.forEach((key, index) => {
+        const itemImg = this.add.image(-100 + (index * 100), 0, key).setDisplaySize(80, 80);
+        const itemText = this.add.text(-100 + (index * 100), 60, key.charAt(0).toUpperCase() + key.slice(1), { fontSize: '18px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(0.5);
         inventoryUI.add(itemImg);
         inventoryUI.add(itemText);
     });
+
+    selectionArrow = this.add.text(-100, -85, '▼', { fontSize: '30px', fill: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+    inventoryUI.add(selectionArrow);
 
     // Input
     cursors = this.input.keyboard.createCursorKeys();
     keys = this.input.keyboard.addKeys('E,F');
 
     // Volume Control UI (Top Right)
-    volumeUI = this.add.container(1820, 30).setScrollFactor(0).setDepth(110);
-    const volText = this.add.text(0, 0, 'Volume: 100%', { fontSize: '16px', fill: '#fff' }).setOrigin(1, 0.5);
-    const volUp = this.add.text(10, 0, '+', { fontSize: '20px', fill: '#fff', backgroundColor: '#444', padding: {x: 5, y: 2} }).setOrigin(0, 0.5).setInteractive();
-    const volDown = this.add.text(40, 0, '-', { fontSize: '20px', fill: '#fff', backgroundColor: '#444', padding: {x: 7, y: 2} }).setOrigin(0, 0.5).setInteractive();
+    volumeUI = this.add.container(1820, 50).setScrollFactor(0).setDepth(110);
+    const volText = this.add.text(0, 0, 'Volume: 100%', { fontSize: '20px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(1, 0.5);
+    const volUp = this.add.text(10, 0, '+', { fontSize: '24px', fill: '#000', backgroundColor: '#eee', padding: {x: 8, y: 4}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
+    const volDown = this.add.text(45, 0, '-', { fontSize: '24px', fill: '#000', backgroundColor: '#eee', padding: {x: 10, y: 4}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
+    const volMute = this.add.text(80, 0, 'Mute', { fontSize: '20px', fill: '#000', backgroundColor: '#eee', padding: {x: 8, y: 4}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
     
-    volumeUI.add([volText, volUp, volDown]);
+    volumeUI.add([volText, volUp, volDown, volMute]);
 
     volUp.on('pointerdown', () => {
         let newVol = Math.min(this.sound.volume + 0.1, 1);
@@ -208,6 +239,11 @@ function create() {
         let newVol = Math.max(this.sound.volume - 0.1, 0);
         this.sound.setVolume(newVol);
         volText.setText(`Volume: ${Math.round(newVol * 100)}%`);
+    });
+
+    volMute.on('pointerdown', () => {
+        this.sound.setVolume(0);
+        volText.setText(`Volume: 0%`);
     });
 }
 
@@ -250,42 +286,92 @@ function update() {
 
     // Interaction UI Logic
     if (activeNPC) {
-        if (!dialogueVisible) {
+        if (!dialogueVisible && !inventoryVisible) {
             interactionText.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 30).setVisible(true);
             interactionHint.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 60).setVisible(true);
-        } else {
+            giveText.setVisible(false);
+            giveHint.setVisible(false);
+        } else if (dialogueVisible) {
             interactionText.setVisible(false);
             interactionHint.setVisible(false);
+            giveText.setVisible(false);
+            giveHint.setVisible(false);
+        } else if (isPassingItem && !inventoryVisible) {
+            // After dialogue, show Give (F) hint
+            interactionText.setVisible(false);
+            interactionHint.setVisible(false);
+            giveText.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 30).setVisible(true);
+            giveHint.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 60).setVisible(true);
         }
         
         if (Phaser.Input.Keyboard.JustDown(keys.E)) {
             if (dialogueVisible) {
                 hideThoughtCloud();
-            } else {
+                isPassingItem = true; // Show Give prompt after dialogue
+            } else if (!inventoryVisible) {
                 showThoughtCloud.call(this, activeNPC);
+                isPassingItem = false;
             }
+        }
+
+        if (isPassingItem && Phaser.Input.Keyboard.JustDown(keys.F) && !inventoryVisible) {
+            inventoryVisible = true;
+            inventoryUI.setVisible(true);
+            isPassingItem = false; // We are in inventory now
         }
     } else {
         interactionText.setVisible(false);
         interactionHint.setVisible(false);
+        giveText.setVisible(false);
+        giveHint.setVisible(false);
         if (dialogueVisible) {
             hideThoughtCloud();
         }
+        inventoryVisible = false;
+        inventoryUI.setVisible(false);
+        isPassingItem = false;
     }
 
-    // Inventory logic
-    if (Phaser.Input.Keyboard.JustDown(keys.F)) {
-        inventoryVisible = !inventoryVisible;
-        inventoryUI.setVisible(inventoryVisible);
-        console.log("Inventory " + (inventoryVisible ? "opened" : "closed"));
+    // Inventory selection logic
+    if (inventoryVisible) {
+        if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
+            selectedItemIndex = (selectedItemIndex - 1 + inventoryItems.length) % inventoryItems.length;
+        } else if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
+            selectedItemIndex = (selectedItemIndex + 1) % inventoryItems.length;
+        }
+        selectionArrow.setX(-100 + (selectedItemIndex * 100));
+
+        if (Phaser.Input.Keyboard.JustDown(keys.F) || Phaser.Input.Keyboard.JustDown(keys.E)) {
+            // Confirm passing item
+            const item = inventoryItems[selectedItemIndex];
+            handleItemPass.call(this, activeNPC, item);
+            inventoryVisible = false;
+            inventoryUI.setVisible(false);
+        }
+    }
+}
+
+function handleItemPass(npc, item) {
+    if (!npc) return;
+    
+    let success = false;
+    if (npc.name === 'Daulet' && item === 'beer') success = true;
+    if (npc.name === 'Geralt' && item === 'proplan') success = true;
+    if (npc.name === 'Yennefer' && item === 'felix') success = true;
+
+    if (success) {
+        etoMneSound.play();
+        console.log(`${npc.name} received ${item}`);
+    } else {
+        console.log(`${npc.name} doesn't want ${item}`);
     }
 }
 
 function showThoughtCloud(npc) {
     if (!this.time) return; // Guard for context issues
-    thoughtCloud.setPosition(npc.x - 80, npc.y - 130).setVisible(true);
-    thoughtText.setPosition(npc.x, npc.y - 110).setVisible(true);
-    thoughtHint.setPosition(npc.x, npc.y - 85).setVisible(true);
+    thoughtCloud.setPosition(npc.x - 80, npc.y - (npc.displayHeight / 2) - 130).setVisible(true);
+    thoughtText.setPosition(npc.x, npc.y - (npc.displayHeight / 2) - 110).setVisible(true);
+    thoughtHint.setPosition(npc.x, npc.y - (npc.displayHeight / 2) - 85).setVisible(true);
     dialogueVisible = true;
     
     if (npc.name === 'Daulet') {
