@@ -231,7 +231,7 @@ function create() {
         inventoryUI.add(itemText);
     });
 
-    selectionArrow = this.add.text(-100, -85, '▼', { fontSize: '30px', fill: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+    selectionArrow = this.add.text(-100, 90, '▲', { fontSize: '30px', fill: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
     inventoryUI.add(selectionArrow);
 
     // Input
