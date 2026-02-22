@@ -23,11 +23,14 @@ let cursors;
 let keys;
 let npcs;
 let music;
+let phoneCallSound;
 let interactionText;
 let thoughtCloud;
 let thoughtText;
 let inventoryUI;
+let volumeUI;
 let inventoryVisible = false;
+let dialogueVisible = false;
 let inventoryItems = [];
 
 const game = new Phaser.Game(config);
@@ -39,6 +42,7 @@ function preload() {
     this.load.image('GeraltHero', 'assets/images/characters/GeraltHero.png');
     this.load.image('YenneferHero', 'assets/images/characters/YenneferHero.png');
     this.load.audio('backgroundMusic', 'assets/music/Hoobastank The Reason.mp3');
+    this.load.audio('phoneCall', 'assets/music/PhoneCall.mp3');
 
     // Inventory items
     this.load.image('proplan', 'assets/images/items/proplan.png');
@@ -53,13 +57,14 @@ function create() {
     // Music
     music = this.sound.add('backgroundMusic', { loop: true });
     music.play();
+    phoneCallSound = this.sound.add('phoneCall', { loop: false });
 
     // Player - Start at starting left corner
     player = this.physics.add.sprite(50, 500, 'VikaHero');
     player.setCollideWorldBounds(true);
     
-    // Scale to 64px height
-    const vikaScale = 64 / player.height;
+    // Scale to 80px height
+    const vikaScale = 80 / player.height;
     player.setScale(vikaScale);
     // Refresh physics body to match scaled size
     player.setBodySize(player.width, player.height); 
@@ -73,9 +78,9 @@ function create() {
     const geralt = npcs.create(400, 500, 'GeraltHero').setName('Geralt');
     const yennefer = npcs.create(600, 500, 'YenneferHero').setName('Yennefer');
 
-    daulet.setDisplaySize(daulet.width * (64 / daulet.height), 64);
-    geralt.setDisplaySize(geralt.width * (32 / geralt.height), 32);
-    yennefer.setDisplaySize(yennefer.width * (32 / yennefer.height), 32);
+    daulet.setDisplaySize(daulet.width * (80 / daulet.height), 80);
+    geralt.setDisplaySize(geralt.width * (40 / geralt.height), 40);
+    yennefer.setDisplaySize(yennefer.width * (40 / yennefer.height), 40);
 
     // Refresh bodies to match new display sizes for static group
     daulet.refreshBody();
@@ -164,6 +169,26 @@ function create() {
     // Input
     cursors = this.input.keyboard.createCursorKeys();
     keys = this.input.keyboard.addKeys('E,F');
+
+    // Volume Control UI (Top Right)
+    volumeUI = this.add.container(700, 30).setScrollFactor(0).setDepth(110);
+    const volText = this.add.text(0, 0, 'Volume: 100%', { fontSize: '16px', fill: '#fff' }).setOrigin(1, 0.5);
+    const volUp = this.add.text(10, 0, '+', { fontSize: '20px', fill: '#fff', backgroundColor: '#444', padding: {x: 5, y: 2} }).setOrigin(0, 0.5).setInteractive();
+    const volDown = this.add.text(40, 0, '-', { fontSize: '20px', fill: '#fff', backgroundColor: '#444', padding: {x: 7, y: 2} }).setOrigin(0, 0.5).setInteractive();
+    
+    volumeUI.add([volText, volUp, volDown]);
+
+    volUp.on('pointerdown', () => {
+        let newVol = Math.min(this.sound.volume + 0.1, 1);
+        this.sound.setVolume(newVol);
+        volText.setText(`Volume: ${Math.round(newVol * 100)}%`);
+    });
+
+    volDown.on('pointerdown', () => {
+        let newVol = Math.max(this.sound.volume - 0.1, 0);
+        this.sound.setVolume(newVol);
+        volText.setText(`Volume: ${Math.round(newVol * 100)}%`);
+    });
 }
 
 let activeNPC = null;
@@ -189,7 +214,7 @@ function update() {
     activeNPC = nearestNPC;
 
     // Player Movement (No Jump, No Gravity)
-    if (!inventoryVisible) {
+    if (!inventoryVisible && !dialogueVisible) {
         if (cursors.left.isDown) {
             player.setVelocityX(-160);
             player.setFlipX(true);
@@ -205,13 +230,24 @@ function update() {
 
     // Interaction UI Logic
     if (activeNPC) {
-        interactionText.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 30).setVisible(true);
+        if (!dialogueVisible) {
+            interactionText.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 30).setVisible(true);
+        } else {
+            interactionText.setVisible(false);
+        }
         
         if (Phaser.Input.Keyboard.JustDown(keys.E)) {
-            showThoughtCloud.call(this, activeNPC);
+            if (dialogueVisible) {
+                hideThoughtCloud();
+            } else {
+                showThoughtCloud.call(this, activeNPC);
+            }
         }
     } else {
         interactionText.setVisible(false);
+        if (dialogueVisible) {
+            hideThoughtCloud();
+        }
     }
 
     // Inventory logic
@@ -226,14 +262,15 @@ function showThoughtCloud(npc) {
     if (!this.time) return; // Guard for context issues
     thoughtCloud.setPosition(npc.x - 75, npc.y - 110).setVisible(true);
     thoughtText.setPosition(npc.x, npc.y - 90).setVisible(true);
+    dialogueVisible = true;
     
-    // Auto hide after 3 seconds
-    this.time.delayedCall(3000, () => {
-        hideThoughtCloud();
-    });
+    if (npc.name === 'Daulet') {
+        phoneCallSound.play();
+    }
 }
 
 function hideThoughtCloud() {
     thoughtCloud.setVisible(false);
     thoughtText.setVisible(false);
+    dialogueVisible = false;
 }
