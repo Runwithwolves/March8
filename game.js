@@ -1,8 +1,8 @@
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 1920,
+    height: 1080,
     physics: {
         default: 'arcade',
         arcade: {
@@ -56,7 +56,8 @@ function preload() {
 
 function create() {
     // Background
-    this.add.image(400, 300, 'BackGroundScene1');
+    const bgImage = this.add.image(960, 540, 'BackGroundScene1');
+    bgImage.setDisplaySize(1920, 1080);
 
     // Music
     music = this.sound.add('backgroundMusic', { loop: true });
@@ -65,7 +66,7 @@ function create() {
     meowSound = this.sound.add('meow', { loop: false });
 
     // Player - Start at starting left corner
-    player = this.physics.add.sprite(50, 500, 'VikaHero');
+    player = this.physics.add.sprite(50, 950, 'VikaHero');
     player.setCollideWorldBounds(true);
     
     // Scale to 80px height
@@ -78,10 +79,10 @@ function create() {
     // NPCs
     npcs = this.physics.add.staticGroup();
     
-    // Position NPCs on the ground (y=500 like player)
-    const daulet = npcs.create(200, 500, 'DauletHero').setName('Daulet');
-    const geralt = npcs.create(400, 500, 'GeraltHero').setName('Geralt');
-    const yennefer = npcs.create(600, 500, 'YenneferHero').setName('Yennefer');
+    // Position NPCs on the ground (y=950 like player)
+    const daulet = npcs.create(400, 950, 'DauletHero').setName('Daulet');
+    const geralt = npcs.create(800, 950, 'GeraltHero').setName('Geralt');
+    const yennefer = npcs.create(1200, 950, 'YenneferHero').setName('Yennefer');
 
     daulet.setDisplaySize(daulet.width * (80 / daulet.height), 80);
     geralt.setDisplaySize(geralt.width * (40 / geralt.height), 40);
@@ -166,7 +167,7 @@ function create() {
     }).setOrigin(0.5).setVisible(false).setDepth(22);
 
     // Inventory UI
-    inventoryUI = this.add.container(400, 300).setScrollFactor(0).setVisible(false).setDepth(100);
+    inventoryUI = this.add.container(960, 540).setScrollFactor(0).setVisible(false).setDepth(100);
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.8);
     bg.fillRoundedRect(-150, -100, 300, 200, 10);
@@ -190,7 +191,7 @@ function create() {
     keys = this.input.keyboard.addKeys('E,F');
 
     // Volume Control UI (Top Right)
-    volumeUI = this.add.container(700, 30).setScrollFactor(0).setDepth(110);
+    volumeUI = this.add.container(1820, 30).setScrollFactor(0).setDepth(110);
     const volText = this.add.text(0, 0, 'Volume: 100%', { fontSize: '16px', fill: '#fff' }).setOrigin(1, 0.5);
     const volUp = this.add.text(10, 0, '+', { fontSize: '20px', fill: '#fff', backgroundColor: '#444', padding: {x: 5, y: 2} }).setOrigin(0, 0.5).setInteractive();
     const volDown = this.add.text(40, 0, '-', { fontSize: '20px', fill: '#fff', backgroundColor: '#444', padding: {x: 7, y: 2} }).setOrigin(0, 0.5).setInteractive();
