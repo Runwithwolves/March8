@@ -212,8 +212,17 @@ function create() {
     bg.strokeRoundedRect(-200, -150, 400, 300, 10);
     inventoryUI.add(bg);
 
-    const invTitle = this.add.text(0, -120, 'Inventory', { fontSize: '32px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(0.5);
+    const invTitle = this.add.text(0, -120, 'Викин Рюкзачок 🎒', { fontSize: '32px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(0.5);
     inventoryUI.add(invTitle);
+
+    const invInfo = this.add.text(0, -80, 'Выберите предмет с помощью стрелочек, нажмите F, чтобы поделиться предметом', { 
+        fontSize: '14px', 
+        fill: '#000', 
+        fontFamily: 'Times New Roman',
+        align: 'center',
+        wordWrap: { width: 350 }
+    }).setOrigin(0.5);
+    inventoryUI.add(invInfo);
 
     inventoryItems.forEach((key, index) => {
         const itemImg = this.add.image(-100 + (index * 100), 0, key).setDisplaySize(80, 80);
