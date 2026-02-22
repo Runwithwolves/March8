@@ -35,6 +35,7 @@ let volumeUI;
 let etoMneSound;
 let giveText;
 let giveHint;
+let shareHint;
 let selectedItemIndex = 0;
 let selectionArrow;
 let isPassingItem = false;
@@ -67,7 +68,7 @@ function create() {
     bgImage.setDisplaySize(1920, 1080);
 
     // Music
-    music = this.sound.add('backgroundMusic', { loop: true });
+    music = this.sound.add('backgroundMusic', { loop: true, volume: 0.5 });
     music.play();
     phoneCallSound = this.sound.add('phoneCall', { loop: false });
     meowSound = this.sound.add('meow', { loop: false });
@@ -194,6 +195,14 @@ function create() {
         padding: { x: 3, y: 1 }
     }).setOrigin(0.5).setVisible(false).setDepth(22);
 
+    // Share Hint (Gray box above dialogue)
+    shareHint = this.add.text(0, 0, 'Нажмите F, чтобы поделиться', { 
+        fontSize: '16px', 
+        fill: '#fff',
+        backgroundColor: '#808080', // Gray box
+        padding: { x: 8, y: 4 }
+    }).setOrigin(0.5).setVisible(false).setDepth(25);
+
     // Inventory UI
     inventoryUI = this.add.container(960, 540).setScrollFactor(0).setVisible(false).setDepth(100);
     const bg = this.add.graphics();
@@ -221,13 +230,15 @@ function create() {
     keys = this.input.keyboard.addKeys('E,F');
 
     // Volume Control UI (Top Right)
-    volumeUI = this.add.container(1700, 50).setScrollFactor(0).setDepth(1000); // Moved to x=1700 and set depth=1000
-    const volText = this.add.text(0, 0, 'Volume: 100%', { fontSize: '24px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(1, 0.5);
+    volumeUI = this.add.container(1850, 50).setScrollFactor(0).setDepth(1000); // Moved further to the right
+    const volText = this.add.text(0, 0, 'Volume: 50%', { fontSize: '24px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(1, 0.5);
     const volUp = this.add.text(10, 0, '+', { fontSize: '28px', fill: '#000', backgroundColor: '#ccc', padding: {x: 10, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
     const volDown = this.add.text(50, 0, '-', { fontSize: '28px', fill: '#000', backgroundColor: '#ccc', padding: {x: 12, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
     const volMute = this.add.text(90, 0, 'Mute', { fontSize: '24px', fill: '#000', backgroundColor: '#ccc', padding: {x: 10, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
     
     volumeUI.add([volText, volUp, volDown, volMute]);
+
+    this.sound.setVolume(0.5); // Initial volume at 50%
 
     volUp.on('pointerdown', () => {
         let newVol = Math.min(this.sound.volume + 0.1, 1);
@@ -291,17 +302,20 @@ function update() {
             interactionHint.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 60).setVisible(true);
             giveText.setVisible(false);
             giveHint.setVisible(false);
+            shareHint.setVisible(false);
         } else if (dialogueVisible) {
             interactionText.setVisible(false);
             interactionHint.setVisible(false);
             giveText.setVisible(false);
             giveHint.setVisible(false);
+            shareHint.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 160).setVisible(true);
         } else if (isPassingItem && !inventoryVisible) {
             // After dialogue, show Give (F) hint
             interactionText.setVisible(false);
             interactionHint.setVisible(false);
             giveText.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 30).setVisible(true);
             giveHint.setPosition(activeNPC.x, activeNPC.y - (activeNPC.displayHeight / 2) - 60).setVisible(true);
+            shareHint.setVisible(false);
         }
         
         if (Phaser.Input.Keyboard.JustDown(keys.E)) {
@@ -324,8 +338,9 @@ function update() {
         interactionHint.setVisible(false);
         giveText.setVisible(false);
         giveHint.setVisible(false);
+        shareHint.setVisible(false);
         if (dialogueVisible) {
-            hideThoughtCloud();
+            hideThoughtCloud.call(this);
         }
         inventoryVisible = false;
         inventoryUI.setVisible(false);
@@ -385,5 +400,6 @@ function hideThoughtCloud() {
     thoughtCloud.setVisible(false);
     thoughtText.setVisible(false);
     thoughtHint.setVisible(false);
+    shareHint.setVisible(false);
     dialogueVisible = false;
 }
