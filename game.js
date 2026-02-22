@@ -230,7 +230,7 @@ function create() {
     keys = this.input.keyboard.addKeys('E,F');
 
     // Volume Control UI (Top Right)
-    volumeUI = this.add.container(1850, 50).setScrollFactor(0).setDepth(1000); // Moved further to the right
+    volumeUI = this.add.container(1750, 100).setScrollFactor(0).setDepth(1000); // Moved lower and more to the left
     const volText = this.add.text(0, 0, 'Volume: 50%', { fontSize: '24px', fill: '#000', fontFamily: 'Times New Roman' }).setOrigin(1, 0.5);
     const volUp = this.add.text(10, 0, '+', { fontSize: '28px', fill: '#000', backgroundColor: '#ccc', padding: {x: 10, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
     const volDown = this.add.text(50, 0, '-', { fontSize: '28px', fill: '#000', backgroundColor: '#ccc', padding: {x: 12, y: 5}, fontFamily: 'Times New Roman' }).setOrigin(0, 0.5).setInteractive();
@@ -321,17 +321,18 @@ function update() {
         if (Phaser.Input.Keyboard.JustDown(keys.E)) {
             if (dialogueVisible) {
                 hideThoughtCloud();
-                isPassingItem = true; // Show Give prompt after dialogue
+                isPassingItem = false;
             } else if (!inventoryVisible) {
                 showThoughtCloud.call(this, activeNPC);
-                isPassingItem = false;
+                isPassingItem = true; // Enable sharing while dialogue is open
             }
         }
 
-        if (isPassingItem && Phaser.Input.Keyboard.JustDown(keys.F) && !inventoryVisible) {
+        if (isPassingItem && Phaser.Input.Keyboard.JustDown(keys.F) && !inventoryVisible && dialogueVisible) {
             inventoryVisible = true;
             inventoryUI.setVisible(true);
-            isPassingItem = false; // We are in inventory now
+            hideThoughtCloud(); // Close the dialogue when inventory opens
+            isPassingItem = false; 
         }
     } else {
         interactionText.setVisible(false);
